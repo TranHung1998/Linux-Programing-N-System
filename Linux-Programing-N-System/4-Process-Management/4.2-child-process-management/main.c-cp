@@ -1,0 +1,90 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <string.h>
+
+
+void main()
+{
+	char buf[20] = "";
+	//Parent A
+	pid_t childB, childC, grandB, grandC, pid;
+	int status;
+	int fd;
+	
+	fd = open("file.txt" ,O_RDWR | O_CREAT, 0667);
+	close(fd);
+	
+	childB = fork();
+	if (0 < childB)
+	{	
+		//Parent A
+		childC = fork();
+	}
+
+	if(0 < childB && 0 < childC)
+	{
+		pid = waitpid(childB, &status, NULL);
+		printf("In A \n");
+		sprintf(buf,"Hi I'm A process\n",buf);
+                fd = open("./file.txt", O_WRONLY);
+		lseek(fd, 0, SEEK_CUR);
+                write(fd, buf, (int)strlen(buf));
+		close(fd);
+		wait(&status);
+	}
+	if(0 == childB && 0 == childC)
+	{
+		grandB = fork();
+		if(0 < grandB)
+		{
+			wait(&status);
+			printf("In B \n");
+			sprintf(buf,"Hi I'm B process\n",buf);
+			fd = open("./file.txt", O_WRONLY);
+			lseek(fd, 0, SEEK_CUR);
+			write(fd, buf, (int)strlen(buf));
+			close(fd);
+
+		}
+	}
+
+	if(0 == childC && 0 < childB)
+	{
+		grandC = fork();
+		if(0 < grandC)
+		{
+			wait(&status);
+			printf("In C \n");
+			sprintf(buf,"Hi I'm C process\n",buf);
+			fd = open("./file.txt", O_WRONLY);
+			lseek(fd, 0, SEEK_CUR);
+			write(fd, buf, (int)strlen(buf));
+			close(fd);
+		}
+	}
+
+	if( 0 == grandB && 0 == childB && 0 == childC )
+	{
+		printf("In B' \n");
+		sprintf(buf,"Hi I'm B' process\n",buf);
+		fd = open("./file.txt", O_WRONLY);
+		lseek(fd, 0, SEEK_CUR);
+		write(fd, buf, (int)strlen(buf));
+		close(fd);
+	}	
+
+	if( 0 == grandC && 0 == childC && 0 < childB)
+	{
+		printf("In C' \n");
+		sprintf(buf,"Hi I'm C' process\n",buf);
+		fd = open("./file.txt", O_WRONLY);
+		lseek(fd, 0, SEEK_CUR);
+		write(fd, buf, (int)strlen(buf));
+		close(fd);
+	}
+
+			
+}
