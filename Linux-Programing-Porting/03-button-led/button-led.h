@@ -14,14 +14,14 @@
 
 #define DEBOUNCING_VALUE                255
 
-#define GPIO_0_26                       20       // P8_14 <=> GPIO_0_26 BUTTON
-#define GPIO_0_31   			        30       // P9_13 <=> GPIO_0_31 LED  
+#define GPIO_0_26                       20       // P9_41 <=> GPIO_0_20 BUTTON
+#define GPIO_0_31   			        31       // P9_13 <=> GPIO_0_31 LED  
 
 #define BTN_PIN                         20
-#define LED_PIN                         30  
+#define LED_PIN                         31  
 
 #define BTN_POS                         ( 1 << 20 )
-#define LED_POS                         ( 1 << 30 )
+#define LED_POS                         ( 1 << 31 )
                     
 
 
