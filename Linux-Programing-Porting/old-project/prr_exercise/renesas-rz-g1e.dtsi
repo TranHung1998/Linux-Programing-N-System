@@ -1,0 +1,11 @@
+/ {
+	iomodule1: iomodule-1 {
+		compatible = "IOmodule1";
+		rvc,prr_addr = <FF000044>;
+	};	
+
+	iomodule2: iomodule-2 {
+		compatible = "IOmodule2";
+		rvc,prr_addr = <FF000044>;
+	};	
+};

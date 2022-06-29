@@ -19,6 +19,7 @@
 void sig_handler1(int num)
 {
 	printf("Pressed ctrl + c : %d\n",num);
+	unlink(FIFO_PATH);
 	exit(EXIT_SUCCESS);
 }
 
@@ -40,29 +41,30 @@ int main(int argc, char const *argv[])
 	char msg[BUF_SIZE];
 	int fd;
 
+	if(mkfifo(FIFO_PATH, 0666) != 0)
+	{
+		handle_error_no_exit("mkfifo()");
+	}
+
 	child_pid = fork();
 
 	if(0 < child_pid)
 	{
-		if(mkfifo(FIFO_PATH, 0666) != 0)
-		{
-			handle_error_no_exit("mkfifo()");
+		// Prevent zombie process 
+		if(signal(SIGCHLD, wait_child) == SIG_ERR) {
+			handle_error("signal()");
+			exit(EXIT_FAILURE);
 		}
 		int write_len;
+		fd = open(FIFO_PATH, O_WRONLY);
 		while(1)
 		{
-			// Prevent zombie process 
-            if(signal(SIGCHLD, wait_child) == SIG_ERR) {
-				handle_error("signal()");
-				exit(EXIT_FAILURE);
-			}
-
-			printf("\nThis is parent process, child_pid: %d, parent_pid: %d\n", child_pid, getpid());
+			printf("\nThis is parent process\n");
+			//printf("Child_pid: %d, parent_pid: %d\n", child_pid, getpid());
 			/* Nhập phản hồi từ bàn phím */
 			printf("Please enter the message to send to child process: \n");
 			fgets(msg, BUF_SIZE, stdin);
-			fd = open(FIFO_PATH, O_WRONLY);
-			printf("Please enter the message to send to child process: \n");
+			
 			if( fd == -1)
 			{
 				handle_error("open()");
@@ -72,20 +74,15 @@ int main(int argc, char const *argv[])
 			{
 				handle_error("write()");
 			}
-			close(fd);
+			//close(fd);
 			usleep(200);
 		}
 	} else if (0 == child_pid)
 	{
-		if(mkfifo(FIFO_PATH, 0666) != 0)
-		{
-			handle_error_no_exit("mkfifo()");
-		}
 		int read_len;
-
+		fd = open(FIFO_PATH, O_RDONLY);
 		while(1)
 		{
-			fd = open(FIFO_PATH, O_RDONLY);
 			if( fd == -1)
 			{
 				handle_error("open()");
@@ -95,8 +92,9 @@ int main(int argc, char const *argv[])
 			{
 				handle_error("read()");
 			}
-			close(fd);
-			printf("\nThis is child process, child_pid: %d, parent_pid: %d\n", getpid(), getppid());
+			//close(fd);
+			printf("\nThis is child process\n");
+			//printf("Child_pid: %d, parent_pid: %d\n", getpid(), getppid());
 			printf("Response from parent pid : %s\n", msg);
 		}
 	} else {
