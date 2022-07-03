@@ -9,9 +9,8 @@ CC := $(TOOLCHAIN)/arm-linux-gnueabihf-gcc
 LD := ld
 
 all :
-	$(CC) --version
 	make ARCH=arm CROSS_COMPILE=$(TOOLCHAIN2)/$(PREFIX) -C $(BBB_KERNEL) M=$(shell pwd) modules
-	$(CC) -o app app-memory-read-write.c
+	$(CC) -o app app-button-led.c gpio.c 
 clean :
 	make -C $(BBB_KERNEL) M=$(shell pwd) clean
 	rm -f app

@@ -34,6 +34,22 @@ struct _iomodule_drv
     int count;
 } iomodule_drv;
 
+volatile int32_t state;
+static unsigned int irq;
+
+static irqreturn_t btn_pushed_irq_handler(int irq, void *dev_idv)
+{
+	if (state == 0) {		
+		*(iomodule_drv.base_addr + GPIO_SETDATAOUT_OFFSET / 4) |= LED_POS;
+		state = 1;
+	} else {
+		*(iomodule_drv.base_addr + GPIO_CLEARDATAOUT_OFFSET / 4) |= LED_POS;
+		state = 0;
+	}
+	pr_info("BTN interrupt - LED state is: %d\n", state);
+	return IRQ_HANDLED;
+}
+
 
 static int iomodule_open (struct inode *inode, struct file *filp);
 static int iomodule_close (struct inode *inode, struct file *filp);
@@ -49,22 +65,6 @@ static struct file_operations file =
     .write = iomodule_write,
 };
 
-volatile int32_t state;
-static unsigned int irq;
-
-static irqreturn_t btn_pushed_irq_handler(int irq, void *dev_idv, struct pt_regs *regs)
-{
-	state = gpio_get_value(LED_PIN);
-	if (state == 0) {		
-		*(iomodule_drv.base_addr + GPIO_SETDATAOUT_OFFSET / 4) |= LED_POS;
-		state = 1;
-	} else {
-		*(iomodule_drv.base_addr + GPIO_CLEARDATAOUT_OFFSET / 4) |= LED_POS;
-		state = 0;
-	}
-	pr_info("BTN interrupt - LED state is: %d\n", state);
-	return IRQ_HANDLED;
-}
 
 static int iomodule_open (struct inode *inode, struct file *filp)
 {
@@ -95,8 +95,7 @@ static ssize_t iomodule_read(struct file *filp, char __user *buff, size_t count,
         return -ENOMEM;
     }
 
-    int len = sprintf(kernel_buff,"%X",*(iomodule_drv.base_addr + GPIO_DATAIN_OFFSET / 4));
-    kernel_buff[len] = '0';
+    int len = sprintf(kernel_buff,"%X + %X + %X ",*(iomodule_drv.base_addr + GPIO_OE_OFFSET / 4),*(iomodule_drv.base_addr + DEBOUNCEENABLE_OFFSET / 4),*(iomodule_drv.base_addr + GPIO_DATAIN_OFFSET / 4));
 
     if(copy_to_user(buff,kernel_buff,count))
     {
@@ -162,7 +161,7 @@ static int __init read_write_IOmodule_init(void)
         goto failed_registed_devnum;
     }
     pr_info("Device Number: (%d,%d)\n", MAJOR(iomodule_drv.dev_num), MINOR(iomodule_drv.dev_num));
-    
+
     /* Tao Device file */
     iomodule_drv.dev_class = class_create(THIS_MODULE, DRIVER_CLASS_NAME);
     if(iomodule_drv.dev_class == NULL)
@@ -192,23 +191,41 @@ static int __init read_write_IOmodule_init(void)
     }
 
     iomodule_drv.base_addr = ioremap(GPIO_0_ADDR_BASE, GPIO_0_ADDR_SIZE);
-	if(!iomodule_drv.base_addr)
-		return -ENOMEM;
-
+	if(!iomodule_drv.base_addr){
+        ret = -ENOMEM;
+        pr_info("Failed ioremap");
+        goto failed_remap_addr;
+    }
+		
+    
 	*(iomodule_drv.base_addr + GPIO_OE_OFFSET / 4) &= ~LED_POS;
     *(iomodule_drv.base_addr + GPIO_CLEARDATAOUT_OFFSET / 4) |= LED_POS; 
 
-    /* Config BTN as input mode */
+    // Config BTN as input mode 
 	*(iomodule_drv.base_addr + GPIO_OE_OFFSET / 4) |= (1 << BTN_PIN);
-	*(iomodule_drv.base_addr + DEBOUNCEENABLE_OFFSET / 4) |= (1 << BTN_PIN);
-	*(iomodule_drv.base_addr + GPIO_DEBOUNCINGTIME_OFFSET / 4) |= DEBOUNCING_VALUE;
+
+    // Cannot setup debouncing like this
+    //*(iomodule_drv.base_addr + DEBOUNCEENABLE_OFFSET / 4) |= (1 << BTN_PIN);
+	//*(iomodule_drv.base_addr + GPIO_DEBOUNCINGTIME_OFFSET / 4) |= DEBOUNCING_VALUE;
+    // Use kernel debouce setup instead
+    gpio_set_debounce(BTN_PIN,150);
 
     uint8_t retval;
 	irq = gpio_to_irq(BTN_PIN);
 	retval = request_irq(irq, (irq_handler_t)btn_pushed_irq_handler, IRQF_TRIGGER_RISING, "iomodule", NULL);
+        if ( retval < 0 )
+        {
+            pr_info("Failed request_irq");
+            goto failed_gpio_to_irq;
+        }
+    
 	return 0;
 
 /* Huy khi goi ham that bai */
+failed_gpio_to_irq:
+    free_irq(gpio_to_irq(BTN_PIN), NULL);
+failed_remap_addr:
+    cdev_del(iomodule_drv.cdev_addr);
 failed_registed_cdev:
     device_destroy(iomodule_drv.dev_class, iomodule_drv.dev_num);
 failed_registed_device:
@@ -223,6 +240,7 @@ static void __exit read_write_IOmodule_cleanup(void)
 {
     *(iomodule_drv.base_addr + GPIO_CLEARDATAOUT_OFFSET / 4) |= LED_POS; 
     free_irq(irq, NULL);
+
     /* Giai phong mapped memory */
     iounmap(iomodule_drv.base_addr);
 

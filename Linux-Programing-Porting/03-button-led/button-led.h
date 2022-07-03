@@ -11,17 +11,24 @@
 #define GPIO_DATAIN_OFFSET              0x138
 #define DEBOUNCEENABLE_OFFSET           0x150
 #define GPIO_DEBOUNCINGTIME_OFFSET      0x154
+#define GPIO_RISINGDETECT_OFFSET        0x148
+#define GPIO_IRQSTATUS_RAW_0_OFFSET     0x24
+#define GPIO_IRQSTATUS_RAW_1_OFFSET     0x28
+#define GPIO_IRQSTATUS_SET_0_OFFSET     0x34
+#define GPIO_IRQSTATUS_SET_1_OFFSET     0x38
+#define GPIO_IRQSTATUS_0_OFFSET         0x2C
+#define GPIO_IRQSTATUS_1_OFFSET         0x30
 
-#define DEBOUNCING_VALUE                255
+#define DEBOUNCING_VALUE                150
 
-#define GPIO_0_26                       20       // P9_41 <=> GPIO_0_20 BUTTON
-#define GPIO_0_31   			        31       // P9_13 <=> GPIO_0_31 LED  
+#define GPIO_0_30                       31       // P9_41 <=> GPIO_0_20 BUTTON
+#define GPIO_0_31   			        30       // P9_13 <=> GPIO_0_31 LED  
 
-#define BTN_PIN                         20
-#define LED_PIN                         31  
+#define BTN_PIN                         31
+#define LED_PIN                         30  
 
-#define BTN_POS                         ( 1 << 20 )
-#define LED_POS                         ( 1 << 31 )
+#define BTN_POS                         ( 1 << 31 )
+#define LED_POS                         ( 1 << 30 )
                     
 
 

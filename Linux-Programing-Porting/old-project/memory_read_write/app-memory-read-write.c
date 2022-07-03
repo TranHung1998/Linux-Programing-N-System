@@ -6,7 +6,7 @@
 
 #define DEVICE_NODE1 "/dev/iomodule1"
 #define DEVICE_NODE2 "/dev/iomodule2"
-#define BUFF_SIZE 20
+#define BUFF_SIZE 50
 /* ham kiem tra entry point open cua vchar driver */
 int open_chardev() {
     int fd = open(DEVICE_NODE1, O_RDWR);
